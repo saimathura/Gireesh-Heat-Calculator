@@ -1,17 +1,20 @@
 "use client";
 
-import type { FieldErrors, UseFormRegister } from "react-hook-form";
+import type { FieldErrors, UseFormRegister, UseFormSetValue } from "react-hook-form";
 import type { HeatExchangerInputs } from "@/lib/types/inputs";
 import { NumberField } from "@/components/calculator/NumberField";
+import { FluidPresetSelect } from "@/components/calculator/FluidPresetSelect";
 
 interface Props {
   register: UseFormRegister<HeatExchangerInputs>;
   errors: FieldErrors<HeatExchangerInputs>;
+  setValue: UseFormSetValue<HeatExchangerInputs>;
 }
 
-export function ShellSideFluidFields({ register, errors }: Props) {
+export function ShellSideFluidFields({ register, errors, setValue }: Props) {
   return (
     <div className="grid grid-cols-2 gap-x-4 gap-y-4 sm:grid-cols-3">
+      <FluidPresetSelect side="shell" setValue={setValue} />
       <NumberField
         name="shellFlowRateKgHr"
         label="Flow rate"

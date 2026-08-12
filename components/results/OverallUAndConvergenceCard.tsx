@@ -39,7 +39,13 @@ export function OverallUAndConvergenceCard({ result }: { result: CalculationResu
         </StatusBadge>
       }
     >
-      <Stat label="Converged U" value={fmt(result.finalUWM2C)} unit="W/m²°C" size="lg" />
+      <Stat
+        label="Converged U"
+        value={fmt(result.finalUWM2C)}
+        animateValue={result.finalUWM2C}
+        unit="W/m²°C"
+        size="lg"
+      />
 
       <ConvergenceTrajectoryChart
         iterations={result.iterations}

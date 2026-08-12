@@ -1,5 +1,6 @@
 "use client";
 
+import { motion, useReducedMotion } from "motion/react";
 import { Button } from "@/components/ui/button";
 import { Printer } from "lucide-react";
 import { DutyAndLmtdCard } from "@/components/results/DutyAndLmtdCard";
@@ -17,15 +18,31 @@ interface Props {
   onHiSelectionModeChange: (mode: HiSelectionMode) => void;
 }
 
+const STAGGER_STEP_S = 0.07;
+
 export function ResultsPanel({ result, hiSelectionMode, onHiSelectionModeChange }: Props) {
+  const reduceMotion = useReducedMotion();
+
+  const enter = (index: number) => ({
+    initial: { opacity: 0, y: reduceMotion ? 0 : 12 },
+    animate: { opacity: 1, y: 0 },
+    transition: { delay: reduceMotion ? 0 : index * STAGGER_STEP_S, duration: 0.35 },
+  });
+
   return (
     <section className="flex flex-col gap-6">
       <div className="flex items-center justify-between gap-2 print:hidden">
         <h2 className="text-sm font-medium text-muted-foreground">Results</h2>
-        <Button variant="outline" size="sm" onClick={() => window.print()}>
-          <Printer className="size-3.5" />
-          Print / save as PDF
-        </Button>
+        <motion.div
+          className="inline-block"
+          whileHover={{ scale: reduceMotion ? 1 : 1.03 }}
+          whileTap={{ scale: reduceMotion ? 1 : 0.96 }}
+        >
+          <Button variant="outline" size="sm" onClick={() => window.print()}>
+            <Printer className="size-3.5" />
+            Print / save as PDF
+          </Button>
+        </motion.div>
       </div>
 
       <div className="hidden flex-col gap-1 print:flex">
@@ -35,20 +52,30 @@ export function ResultsPanel({ result, hiSelectionMode, onHiSelectionModeChange 
         </p>
       </div>
 
-      <VerdictBadges result={result} />
+      <motion.div {...enter(0)}>
+        <VerdictBadges result={result} />
+      </motion.div>
 
       <div className="grid grid-cols-1 items-start gap-4 lg:grid-cols-2">
-        <DutyAndLmtdCard result={result} />
-        <GeometryCard result={result} />
-        <HeatTransferCoefficientsCard
-          result={result}
-          hiSelectionMode={hiSelectionMode}
-          onHiSelectionModeChange={onHiSelectionModeChange}
-        />
-        <OverallUAndConvergenceCard result={result} />
-        <div className="lg:col-span-2">
+        <motion.div {...enter(1)}>
+          <DutyAndLmtdCard result={result} />
+        </motion.div>
+        <motion.div {...enter(2)}>
+          <GeometryCard result={result} />
+        </motion.div>
+        <motion.div {...enter(3)}>
+          <HeatTransferCoefficientsCard
+            result={result}
+            hiSelectionMode={hiSelectionMode}
+            onHiSelectionModeChange={onHiSelectionModeChange}
+          />
+        </motion.div>
+        <motion.div {...enter(4)}>
+          <OverallUAndConvergenceCard result={result} />
+        </motion.div>
+        <motion.div {...enter(5)} className="lg:col-span-2">
           <PressureDropAndNozzlesCard result={result} />
-        </div>
+        </motion.div>
       </div>
     </section>
   );

@@ -10,6 +10,9 @@ test("loads reference example, calculates, toggles hi method, and prints without
   page.on("pageerror", (err) => errors.push(err.message));
 
   await page.goto("/");
+  await expect(page.getByRole("button", { name: "Get started" })).toBeVisible();
+  await page.getByRole("button", { name: "Get started" }).click();
+
   await expect(
     page.getByRole("heading", { name: /Shell & Tube Heat Exchanger Calculator/i }),
   ).toBeVisible();
@@ -39,6 +42,8 @@ test("loads reference example, calculates, toggles hi method, and prints without
 
   await page.getByText("Conservative (auto)", { exact: true }).click();
 
+  // Let the card stagger and number tween settle before screenshotting.
+  await page.waitForTimeout(900);
   await page.screenshot({ path: "tests/__screenshots__/results.png", fullPage: true });
 
   expect(initialU).toBeTruthy();

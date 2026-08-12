@@ -6,7 +6,14 @@ import type { CalculationResult } from "@/lib/types/results";
 export function DutyAndLmtdCard({ result }: { result: CalculationResult }) {
   return (
     <ResultCard title="Duty & LMTD">
-      <Stat label="Heat duty" value={fmt(result.heatDutyKw)} unit="kW" size="lg" className="col-span-2 sm:col-span-1" />
+      <Stat
+        label="Heat duty"
+        value={fmt(result.heatDutyKw)}
+        animateValue={result.heatDutyKw}
+        unit="kW"
+        size="lg"
+        className="col-span-2 sm:col-span-1"
+      />
       <Stat
         label="Tube-side flow (derived)"
         value={fmt(result.tubeFlowRateKgHr, 0)}
