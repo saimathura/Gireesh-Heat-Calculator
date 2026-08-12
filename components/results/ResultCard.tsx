@@ -20,7 +20,7 @@ export function ResultCard({
   children,
 }: Props) {
   return (
-    <Card>
+    <Card className="break-inside-avoid">
       <CardHeader
         className={headerExtra ? "flex flex-row items-center justify-between gap-2" : undefined}
       >

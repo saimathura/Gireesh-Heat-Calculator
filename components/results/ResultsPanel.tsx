@@ -52,28 +52,28 @@ export function ResultsPanel({ result, hiSelectionMode, onHiSelectionModeChange 
         </p>
       </div>
 
-      <motion.div {...enter(0)}>
+      <motion.div {...enter(0)} className="break-inside-avoid">
         <VerdictBadges result={result} />
       </motion.div>
 
       <div className="grid grid-cols-1 items-start gap-4 lg:grid-cols-2">
-        <motion.div {...enter(1)}>
+        <motion.div {...enter(1)} className="break-inside-avoid">
           <DutyAndLmtdCard result={result} />
         </motion.div>
-        <motion.div {...enter(2)}>
+        <motion.div {...enter(2)} className="break-inside-avoid">
           <GeometryCard result={result} />
         </motion.div>
-        <motion.div {...enter(3)}>
+        <motion.div {...enter(3)} className="break-inside-avoid">
           <HeatTransferCoefficientsCard
             result={result}
             hiSelectionMode={hiSelectionMode}
             onHiSelectionModeChange={onHiSelectionModeChange}
           />
         </motion.div>
-        <motion.div {...enter(4)}>
+        <motion.div {...enter(4)} className="break-inside-avoid">
           <OverallUAndConvergenceCard result={result} />
         </motion.div>
-        <motion.div {...enter(5)} className="lg:col-span-2">
+        <motion.div {...enter(5)} className="break-inside-avoid lg:col-span-2">
           <PressureDropAndNozzlesCard result={result} />
         </motion.div>
       </div>
