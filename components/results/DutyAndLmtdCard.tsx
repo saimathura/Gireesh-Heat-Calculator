@@ -15,7 +15,7 @@ export function DutyAndLmtdCard({ result }: { result: CalculationResult }) {
         className="col-span-2 sm:col-span-1"
       />
       <Stat
-        label="Tube-side flow (derived)"
+        label={result.isSteam ? "Tube-side flow (input)" : "Tube-side flow (derived)"}
         value={fmt(result.tubeFlowRateKgHr, 0)}
         unit="kg/hr"
       />
@@ -23,6 +23,26 @@ export function DutyAndLmtdCard({ result }: { result: CalculationResult }) {
       <Stat label="R / S" value={`${fmt(result.r, 2)} / ${fmt(result.s, 2)}`} />
       <Stat label="Correction factor F" value={fmt(result.f, 3)} />
       <Stat label="LMTD corrected" value={fmt(result.lmtdCorrected)} unit="°C" />
+      {result.isSteam ? (
+        <>
+          <Stat
+            label="Steam saturation temp"
+            value={fmt(result.steamTempC ?? 0, 1)}
+            unit="°C"
+          />
+          <Stat
+            label="Latent heat"
+            value={fmt(result.steamHfgKjKg ?? 0, 1)}
+            unit="kJ/kg"
+          />
+          <Stat
+            label="Steam consumption"
+            value={fmt(result.steamConsumptionKgHr ?? 0, 1)}
+            unit="kg/hr"
+            className="col-span-2 sm:col-span-1"
+          />
+        </>
+      ) : null}
     </ResultCard>
   );
 }

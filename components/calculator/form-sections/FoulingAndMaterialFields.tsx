@@ -1,15 +1,17 @@
 "use client";
 
-import type { FieldErrors, UseFormRegister } from "react-hook-form";
+import type { FieldErrors, UseFormRegister, UseFormSetValue } from "react-hook-form";
 import type { HeatExchangerInputs } from "@/lib/types/inputs";
 import { NumberField } from "@/components/calculator/NumberField";
+import { MaterialSelect } from "@/components/calculator/MaterialSelect";
 
 interface Props {
   register: UseFormRegister<HeatExchangerInputs>;
   errors: FieldErrors<HeatExchangerInputs>;
+  setValue: UseFormSetValue<HeatExchangerInputs>;
 }
 
-export function FoulingAndMaterialFields({ register, errors }: Props) {
+export function FoulingAndMaterialFields({ register, errors, setValue }: Props) {
   return (
     <div className="grid grid-cols-2 gap-x-4 gap-y-4 sm:grid-cols-3">
       <NumberField
@@ -26,6 +28,7 @@ export function FoulingAndMaterialFields({ register, errors }: Props) {
         register={register}
         errors={errors}
       />
+      <MaterialSelect setValue={setValue} />
       <NumberField
         name="kwWM_C"
         label="Tube wall conductivity (Kw)"

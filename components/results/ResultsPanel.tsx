@@ -6,21 +6,24 @@ import { Printer } from "lucide-react";
 import { DutyAndLmtdCard } from "@/components/results/DutyAndLmtdCard";
 import { GeometryCard } from "@/components/results/GeometryCard";
 import { HeatTransferCoefficientsCard } from "@/components/results/HeatTransferCoefficientsCard";
+import { MaterialComparisonCard } from "@/components/results/MaterialComparisonCard";
 import { OverallUAndConvergenceCard } from "@/components/results/OverallUAndConvergenceCard";
+import { PressureDropAnalysisCard } from "@/components/results/PressureDropAnalysisCard";
 import { PressureDropAndNozzlesCard } from "@/components/results/PressureDropAndNozzlesCard";
 import { VerdictBadges } from "@/components/results/VerdictBadges";
-import type { HiSelectionMode } from "@/lib/types/inputs";
+import type { HeatExchangerInputs, HiSelectionMode } from "@/lib/types/inputs";
 import type { CalculationResult } from "@/lib/types/results";
 
 interface Props {
   result: CalculationResult;
+  inputs: HeatExchangerInputs;
   hiSelectionMode: HiSelectionMode;
   onHiSelectionModeChange: (mode: HiSelectionMode) => void;
 }
 
 const STAGGER_STEP_S = 0.07;
 
-export function ResultsPanel({ result, hiSelectionMode, onHiSelectionModeChange }: Props) {
+export function ResultsPanel({ result, inputs, hiSelectionMode, onHiSelectionModeChange }: Props) {
   const reduceMotion = useReducedMotion();
 
   const enter = (index: number) => ({
@@ -75,6 +78,12 @@ export function ResultsPanel({ result, hiSelectionMode, onHiSelectionModeChange 
         </motion.div>
         <motion.div {...enter(5)} className="break-inside-avoid lg:col-span-2">
           <PressureDropAndNozzlesCard result={result} />
+        </motion.div>
+        <motion.div {...enter(6)} className="break-inside-avoid lg:col-span-2">
+          <MaterialComparisonCard inputs={inputs} hiSelectionMode={hiSelectionMode} />
+        </motion.div>
+        <motion.div {...enter(7)} className="break-inside-avoid lg:col-span-2">
+          <PressureDropAnalysisCard inputs={inputs} hiSelectionMode={hiSelectionMode} />
         </motion.div>
       </div>
     </section>

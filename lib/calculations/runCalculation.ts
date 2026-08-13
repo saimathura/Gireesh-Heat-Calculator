@@ -11,13 +11,23 @@ import {
   calculateShellSideDeltaP,
   calculateTubeSideDeltaP,
 } from "@/lib/calculations/pressureDrop";
-import { lookupK1N1 } from "@/lib/calculations/tubeGeometry";
+import { calculateBaffleCount, lookupK1N1 } from "@/lib/calculations/tubeGeometry";
+import {
+  calculateSteamConsumptionKgS,
+  interpolateSteamSaturation,
+} from "@/lib/calculations/steamProperties";
 import {
   CALIBRATED_RE_RANGE,
   DEFAULT_CONVERGENCE_TOLERANCE,
   PRESSURE_DROP_FAIL_THRESHOLD_BAR,
   PRESSURE_DROP_WARNING_THRESHOLD_BAR,
 } from "@/lib/constants/physicalConstants";
+import {
+  STEAM_CONDENSING_FILM_COEFFICIENT_RANGE,
+  STEAM_CONDENSING_FILM_COEFFICIENT_WM2C,
+  STEAM_NOZZLE_DESIGN_VELOCITY_MS,
+  STEAM_SPECIFIC_GAS_CONSTANT_J_KGK,
+} from "@/lib/constants/steamTable";
 import type { HeatExchangerInputs, HiSelectionMode } from "@/lib/types/inputs";
 import type { CalculationResult } from "@/lib/types/results";
 import { heatExchangerInputsSchema } from "@/lib/validation/inputSchema";
@@ -28,14 +38,41 @@ export function runCalculation(
 ): CalculationResult {
   heatExchangerInputsSchema.parse(inputs);
 
-  const shellDtC = inputs.shellInletTempC - inputs.shellOutletTempC;
+  const shellIsSteam = inputs.shellIsSteam ?? false;
   const tubeDtC = inputs.tubeOutletTempC - inputs.tubeInletTempC;
 
-  const heatDutyKw = calculateHeatDuty(
-    inputs.shellFlowRateKgHr,
-    inputs.shellCpKjKgK,
-    shellDtC,
-  );
+  let heatDutyKw: number;
+  let steamTempC: number | null = null;
+  let steamHfgKjKg: number | null = null;
+  let steamConsumptionKgHr: number | null = null;
+
+  if (shellIsSteam) {
+    if (inputs.shellSteamPressureBarA === undefined || inputs.tubeFlowRateKgHrInput === undefined) {
+      // Guarded by the zod schema's refine() checks - unreachable in
+      // practice, but keeps this function's types honest without a
+      // non-null assertion.
+      throw new Error("Steam pressure and tube-side flow rate are required when the shell side is steam.");
+    }
+    const saturation = interpolateSteamSaturation(inputs.shellSteamPressureBarA);
+    steamTempC = saturation.tempC;
+    steamHfgKjKg = saturation.hfgKjKg;
+    // Duty comes from the tube side's own energy balance (mdot*Cp*dT) since
+    // the shell side is isothermal condensation, not a Cp*deltaT process.
+    heatDutyKw = calculateHeatDuty(
+      inputs.tubeFlowRateKgHrInput,
+      inputs.tubeCpKjKgK,
+      tubeDtC,
+    );
+    steamConsumptionKgHr = calculateSteamConsumptionKgS(heatDutyKw, steamHfgKjKg) * 3600;
+  } else {
+    const shellDtC = inputs.shellInletTempC - inputs.shellOutletTempC;
+    heatDutyKw = calculateHeatDuty(
+      inputs.shellFlowRateKgHr,
+      inputs.shellCpKjKgK,
+      shellDtC,
+    );
+  }
+
   const tubeFlowRateKgS = calculateTubeFlowRate(
     heatDutyKw,
     inputs.tubeCpKjKgK,
@@ -73,28 +110,49 @@ export function runCalculation(
     inputs.tubeRhoKgM3,
     finalDetail.tubeVelocityMs,
   );
-  const shellDeltaP = calculateShellSideDeltaP(
-    finalDetail.reShell,
-    finalStep.shellDiameterMm,
-    finalDetail.deMm,
-    inputs.tubeLengthMm,
-    finalDetail.baffleSpacingMm,
-    inputs.shellRhoKgM3,
-    finalDetail.shellVelocityMs,
-  );
+  // Kern's shell-side friction-factor correlation is for single-phase
+  // cross-flow, not condensing vapor - shell-side pressure drop isn't
+  // modeled for steam (report zero/not-modeled rather than a number
+  // computed from placeholder liquid-like properties).
+  const shellDeltaP = shellIsSteam
+    ? { nM2: 0, bar: 0, extrapolated: false }
+    : calculateShellSideDeltaP(
+        finalDetail.reShell,
+        finalStep.shellDiameterMm,
+        finalDetail.deMm,
+        inputs.tubeLengthMm,
+        finalDetail.baffleSpacingMm,
+        inputs.shellRhoKgM3,
+        finalDetail.shellVelocityMs,
+      );
 
   const tubeNozzleMm = calculateNozzleSize(
     tubeFlowRateKgS,
     inputs.tubeRhoKgM3,
     finalDetail.tubeVelocityMs,
   );
-  const shellNozzleMm = calculateNozzleSize(
-    inputs.shellFlowRateKgHr / 3600,
-    inputs.shellRhoKgM3,
-    finalDetail.shellVelocityMs,
-  );
+  // Steam nozzle: sized from derived steam consumption, an ideal-gas vapor
+  // density estimate at the saturation condition, and a typical steam
+  // line design velocity - not from the Kern cross-flow velocity used for
+  // single-phase shell-side streams (physically wrong for a vapor).
+  const shellNozzleMm = shellIsSteam
+    ? calculateNozzleSize(
+        (steamConsumptionKgHr as number) / 3600,
+        ((inputs.shellSteamPressureBarA as number) * 1e5) /
+          (STEAM_SPECIFIC_GAS_CONSTANT_J_KGK * ((steamTempC as number) + 273.15)),
+        STEAM_NOZZLE_DESIGN_VELOCITY_MS,
+      )
+    : calculateNozzleSize(
+        inputs.shellFlowRateKgHr / 3600,
+        inputs.shellRhoKgM3,
+        finalDetail.shellVelocityMs,
+      );
 
   const { k1, n1 } = lookupK1N1(inputs.passCount);
+  const baffleCount = calculateBaffleCount(
+    inputs.tubeLengthMm,
+    finalDetail.baffleSpacingMm,
+  );
 
   const tubeDeltaPOk = tubeDeltaP.bar <= PRESSURE_DROP_WARNING_THRESHOLD_BAR;
   const shellDeltaPOk = shellDeltaP.bar <= PRESSURE_DROP_WARNING_THRESHOLD_BAR;
@@ -107,8 +165,9 @@ export function runCalculation(
     finalDetail.reTube < CALIBRATED_RE_RANGE.min ||
     finalDetail.reTube > CALIBRATED_RE_RANGE.max;
   const shellReOutOfRange =
-    finalDetail.reShell < CALIBRATED_RE_RANGE.min ||
-    finalDetail.reShell > CALIBRATED_RE_RANGE.max;
+    !shellIsSteam &&
+    (finalDetail.reShell < CALIBRATED_RE_RANGE.min ||
+      finalDetail.reShell > CALIBRATED_RE_RANGE.max);
   const reynoldsOutOfCalibratedRange =
     tubeDeltaP.extrapolated ||
     shellDeltaP.extrapolated ||
@@ -155,7 +214,11 @@ export function runCalculation(
       "One or more Reynolds numbers fall outside the ~7,000-10,000 range that the digitized hi (Method B), ho, and friction-factor correlations were calibrated against — treat those results (including tube count, shell diameter, and U, not just pressure drop) as extrapolated and verify manually.",
     );
   }
-  if (Math.abs(inputs.baffleCutPercent - 25) > 2) {
+  if (shellIsSteam) {
+    messages.push(
+      `Shell side modeled as condensing steam at ${(steamTempC as number).toFixed(1)}°C (${steamHfgKjKg?.toFixed(1)} kJ/kg latent heat) — steam-side film coefficient uses a typical published value (${STEAM_CONDENSING_FILM_COEFFICIENT_WM2C} W/m²°C, literature range ${STEAM_CONDENSING_FILM_COEFFICIENT_RANGE.min}-${STEAM_CONDENSING_FILM_COEFFICIENT_RANGE.max}) rather than a Kern correlation computed from this design, and shell-side pressure drop is not modeled for condensing vapor. Steam consumption: ${steamConsumptionKgHr?.toFixed(1)} kg/hr.`,
+    );
+  } else if (Math.abs(inputs.baffleCutPercent - 25) > 2) {
     messages.push(
       `Shell-side ho and the shell-side friction factor are only calibrated at a 25% baffle cut anchor point (this design uses ${inputs.baffleCutPercent}%) — baffle cut is not currently modeled as a variable in these correlations, so treat ho and shell-side ΔP as approximate for baffle cuts far from 25%.`,
     );
@@ -165,6 +228,10 @@ export function runCalculation(
     heatDutyKw,
     tubeFlowRateKgS,
     tubeFlowRateKgHr: tubeFlowRateKgS * 3600,
+    isSteam: shellIsSteam,
+    steamTempC,
+    steamHfgKjKg,
+    steamConsumptionKgHr,
     lmtd,
     r,
     s,
@@ -184,6 +251,9 @@ export function runCalculation(
     shellDiameterMm: finalStep.shellDiameterMm,
     k1,
     n1,
+    tubeLengthMm: inputs.tubeLengthMm,
+    baffleCount,
+    baffleSpacingMm: finalDetail.baffleSpacingMm,
 
     tubeSide: {
       diMm: finalDetail.diMm,

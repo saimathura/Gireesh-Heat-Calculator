@@ -43,7 +43,13 @@ export function calculateRS(
 export function calculateF(r: number, s: number): number {
   let f: number;
 
-  if (r === 1) {
+  if (r === 0) {
+    // R=0 means the shell side is isothermal (e.g. condensing steam) - F is
+    // exactly 1 for any S, by definition, not just in the limit. The general
+    // formula below reduces to log(1-s)/log(1-s) here, which floating-point
+    // rounding can push a hair past 1 and trip the sanity check further down.
+    f = 1;
+  } else if (r === 1) {
     // Degenerate case of the Bowman/Mueller/Nagle form (R -> 1 limit).
     const denomArg = 2 - s * (2 - Math.SQRT2);
     const numArg = 2 - s * (2 + Math.SQRT2);

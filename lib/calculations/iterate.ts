@@ -17,6 +17,7 @@ import {
   DEFAULT_CONVERGENCE_TOLERANCE,
   DEFAULT_MAX_ITERATIONS,
 } from "@/lib/constants/physicalConstants";
+import { STEAM_CONDENSING_FILM_COEFFICIENT_WM2C } from "@/lib/constants/steamTable";
 import type {
   HeatExchangerInputs,
   HiSelectionMode,
@@ -66,6 +67,7 @@ interface ThermalInputs {
   hidWM2C: number;
   hodWM2C: number;
   kwWM_C: number;
+  shellIsSteam: boolean;
 }
 
 export function selectHi(
@@ -159,14 +161,15 @@ function runOneIteration(
     thermal.shellMuMNsM2,
     thermal.shellKfWmC,
   );
-  const ho = calculateHo(
-    gs,
-    deMm,
-    thermal.shellMuMNsM2,
-    thermal.shellCpKjKgK,
-    thermal.shellKfWmC,
-    1,
-  );
+  // Condensing steam doesn't follow Kern's single-phase shell correlation
+  // (that correlation is for sensible-heat cross-flow, not a condensing
+  // film) - use the typical published condensing-coefficient estimate
+  // instead. Re/Pr/velocity are still computed above for display, but they
+  // describe a condensing vapor, not a single-phase cross-flow stream, so
+  // treat them as informational only in steam mode.
+  const ho = thermal.shellIsSteam
+    ? STEAM_CONDENSING_FILM_COEFFICIENT_WM2C
+    : calculateHo(gs, deMm, thermal.shellMuMNsM2, thermal.shellCpKjKgK, thermal.shellKfWmC, 1);
 
   const uCalculated = calculateOverallU({
     doMm: geometry.odMm,
@@ -249,6 +252,7 @@ export function runConvergenceLoop(
     hidWM2C: inputs.hidWM2C,
     hodWM2C: inputs.hodWM2C,
     kwWM_C: inputs.kwWM_C,
+    shellIsSteam: inputs.shellIsSteam ?? false,
   };
 
   const iterations: IterationStep[] = [];

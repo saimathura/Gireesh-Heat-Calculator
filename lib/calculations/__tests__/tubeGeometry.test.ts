@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  calculateBaffleCount,
   calculateBundleDiameter,
   calculateTubeCount,
   lookupK1N1,
@@ -78,5 +79,25 @@ describe("roundUpToStandardPipeSize", () => {
 
   it("throws a descriptive error when the design exceeds the largest standard size", () => {
     expect(() => roundUpToStandardPipeSize(5000)).toThrow(/exceeds/i);
+  });
+});
+
+describe("calculateBaffleCount", () => {
+  it("reproduces the source sheet's baffle count (2000mm / 169mm -> 11.83 -> 12)", () => {
+    expect(calculateBaffleCount(2000, 169)).toBe(12);
+  });
+
+  it("rounds up rather than down (never under-specifies baffles)", () => {
+    expect(calculateBaffleCount(2000, 200)).toBe(10);
+    expect(calculateBaffleCount(2001, 200)).toBe(11);
+  });
+
+  it("gives fewer baffles as spacing widens, for a fixed tube length", () => {
+    const counts = [150, 200, 250, 300].map((spacing) =>
+      calculateBaffleCount(2000, spacing),
+    );
+    for (let i = 1; i < counts.length; i++) {
+      expect(counts[i]).toBeLessThanOrEqual(counts[i - 1]);
+    }
   });
 });

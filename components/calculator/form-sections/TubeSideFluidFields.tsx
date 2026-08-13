@@ -1,20 +1,34 @@
 "use client";
 
-import type { FieldErrors, UseFormRegister, UseFormSetValue } from "react-hook-form";
+import type {
+  FieldErrors,
+  UseFormGetValues,
+  UseFormRegister,
+  UseFormSetValue,
+} from "react-hook-form";
 import type { HeatExchangerInputs } from "@/lib/types/inputs";
 import { NumberField } from "@/components/calculator/NumberField";
 import { FluidPresetSelect } from "@/components/calculator/FluidPresetSelect";
+import type { UCategory } from "@/lib/constants/uValueTable";
 
 interface Props {
   register: UseFormRegister<HeatExchangerInputs>;
   errors: FieldErrors<HeatExchangerInputs>;
   setValue: UseFormSetValue<HeatExchangerInputs>;
+  getValues: UseFormGetValues<HeatExchangerInputs>;
+  /** Tube side never selects "steam" - the FluidPresetSelect UI doesn't offer it here. */
+  onCategoryChange?: (category: UCategory | null) => void;
 }
 
-export function TubeSideFluidFields({ register, errors, setValue }: Props) {
+export function TubeSideFluidFields({ register, errors, setValue, getValues, onCategoryChange }: Props) {
   return (
     <div className="grid grid-cols-2 gap-x-4 gap-y-4 sm:grid-cols-3">
-      <FluidPresetSelect side="tube" setValue={setValue} />
+      <FluidPresetSelect
+        side="tube"
+        setValue={setValue}
+        getValues={getValues}
+        onCategoryChange={onCategoryChange}
+      />
       <NumberField
         name="tubeInletTempC"
         label="Inlet temperature"

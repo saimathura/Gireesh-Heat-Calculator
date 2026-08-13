@@ -31,3 +31,14 @@ export function calculateBundleDiameter(
 ): number {
   return odMm * Math.pow(tubeCount / k1, 1 / n1);
 }
+
+/**
+ * Number of baffles, matching the source design sheet's own convention
+ * (No of Baffle = tube length / baffle spacing, rounded up) rather than the
+ * alternative "L/Lb - 1" textbook convention - the spec calls the sheet the
+ * source of truth wherever its own numbers can be reproduced exactly
+ * (verified: 2000mm / 169mm -> 11.83 -> 12 baffles, matching the sheet).
+ */
+export function calculateBaffleCount(lengthMm: number, baffleSpacingMm: number): number {
+  return Math.ceil(lengthMm / baffleSpacingMm);
+}

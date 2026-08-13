@@ -16,6 +16,16 @@ export const heatExchangerInputsSchema = z
     shellKfWmC: positiveNumber("Shell-side thermal conductivity"),
     shellMuMNsM2: positiveNumber("Shell-side viscosity"),
 
+    shellIsSteam: z.boolean().optional(),
+    shellSteamPressureBarA: z
+      .number({ error: "Steam pressure must be a number" })
+      .positive({ error: "Steam pressure must be greater than 0" })
+      .optional(),
+    tubeFlowRateKgHrInput: z
+      .number({ error: "Tube-side flow rate must be a number" })
+      .positive({ error: "Tube-side flow rate must be greater than 0" })
+      .optional(),
+
     tubeInletTempC: z.number({ error: "Tube inlet temperature must be a number" }),
     tubeOutletTempC: z.number({ error: "Tube outlet temperature must be a number" }),
     tubeCpKjKgK: positiveNumber("Tube-side Cp"),
@@ -60,14 +70,31 @@ export const heatExchangerInputsSchema = z
       .max(1000, { error: "Max iterations above 1000 is not practical" })
       .optional(),
   })
-  .refine((data) => data.shellOutletTempC < data.shellInletTempC, {
-    error: "Shell-side outlet temperature must be lower than inlet temperature (shell is being cooled)",
-    path: ["shellOutletTempC"],
-  })
+  .refine(
+    (data) => data.shellIsSteam || data.shellOutletTempC < data.shellInletTempC,
+    {
+      error: "Shell-side outlet temperature must be lower than inlet temperature (shell is being cooled)",
+      path: ["shellOutletTempC"],
+    },
+  )
   .refine((data) => data.tubeOutletTempC > data.tubeInletTempC, {
     error: "Tube-side outlet temperature must be higher than inlet temperature (tube is being heated)",
     path: ["tubeOutletTempC"],
   })
+  .refine(
+    (data) => !data.shellIsSteam || data.shellSteamPressureBarA !== undefined,
+    {
+      error: "Steam pressure is required when the shell side is set to steam",
+      path: ["shellSteamPressureBarA"],
+    },
+  )
+  .refine(
+    (data) => !data.shellIsSteam || data.tubeFlowRateKgHrInput !== undefined,
+    {
+      error: "Tube-side flow rate is required when the shell side is set to steam (duty is derived from the tube side instead of shell Cp*deltaT)",
+      path: ["tubeFlowRateKgHrInput"],
+    },
+  )
   .refine((data) => data.tubeOdMm > 2 * data.tubeWallThicknessMm, {
     error: "Tube wall thickness is too large relative to the OD (inner diameter would be zero or negative)",
     path: ["tubeWallThicknessMm"],

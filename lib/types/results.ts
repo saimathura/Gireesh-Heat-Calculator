@@ -20,6 +20,10 @@ export interface CalculationResult {
   heatDutyKw: number;
   tubeFlowRateKgS: number;
   tubeFlowRateKgHr: number;
+  isSteam: boolean;
+  steamTempC: number | null;
+  steamHfgKjKg: number | null;
+  steamConsumptionKgHr: number | null;
   lmtd: number;
   r: number;
   s: number;
@@ -40,6 +44,9 @@ export interface CalculationResult {
   shellDiameterMm: number;
   k1: number;
   n1: number;
+  tubeLengthMm: number;
+  baffleCount: number;
+  baffleSpacingMm: number;
 
   // Flow / heat transfer detail
   tubeSide: { diMm: number; re: number; pr: number; velocityMs: number };

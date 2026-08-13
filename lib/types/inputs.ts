@@ -14,6 +14,19 @@ export interface HeatExchangerInputs {
   shellKfWmC: number;
   shellMuMNsM2: number;
 
+  // Shell-side steam mode: when true, the shell side is condensing steam
+  // rather than a single-phase sensible-heat fluid. Duty is then computed
+  // from the tube side (tubeFlowRateKgHrInput, required in this mode)
+  // instead of shell Cp*deltaT, and shellFlowRateKgHr/shellCpKjKgK/
+  // shellRhoKgM3/shellKfWmC/shellMuMNsM2 above are ignored - inlet/outlet
+  // temp is instead set to the saturation temperature at
+  // shellSteamPressureBarA, and the shell-side film coefficient uses a
+  // typical published condensing-coefficient estimate instead of Kern's
+  // single-phase shell correlation. Only the shell side supports steam.
+  shellIsSteam?: boolean;
+  shellSteamPressureBarA?: number;
+  tubeFlowRateKgHrInput?: number;
+
   // Tube-side fluid (flow rate is derived, not entered)
   tubeInletTempC: number;
   tubeOutletTempC: number;

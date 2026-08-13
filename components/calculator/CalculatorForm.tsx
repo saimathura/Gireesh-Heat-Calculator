@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { LoadReferenceExampleButton } from "@/components/calculator/LoadReferenceExampleButton";
+import { LoadKeroseneWaterVaporExampleButton } from "@/components/calculator/LoadKeroseneWaterVaporExampleButton";
 import { ShellSideFluidFields } from "@/components/calculator/form-sections/ShellSideFluidFields";
 import { TubeSideFluidFields } from "@/components/calculator/form-sections/TubeSideFluidFields";
 import { TubeGeometryFields } from "@/components/calculator/form-sections/TubeGeometryFields";
@@ -21,6 +22,8 @@ import { ThemeToggle } from "@/components/ThemeToggle";
 import { runCalculation } from "@/lib/calculations/runCalculation";
 import { heatExchangerInputsSchema } from "@/lib/validation/inputSchema";
 import { REFERENCE_EXAMPLE_INPUTS } from "@/lib/referenceExample";
+import { KEROSENE_WATER_VAPOR_EXAMPLE_INPUTS } from "@/lib/keroseneWaterVaporExample";
+import { estimateInitialU, type USuggestion, type UCategory } from "@/lib/constants/uValueTable";
 import type { HeatExchangerInputs, HiSelectionMode } from "@/lib/types/inputs";
 
 // Real computation is synchronous and sub-millisecond - this is a
@@ -35,6 +38,8 @@ export function CalculatorForm() {
     register,
     control,
     setValue,
+    getValues,
+    watch,
     handleSubmit,
     reset,
     formState: { errors },
@@ -50,6 +55,24 @@ export function CalculatorForm() {
     useState<HiSelectionMode>("conservative");
   const [isCalculating, setIsCalculating] = useState(false);
   const [calculationCount, setCalculationCount] = useState(0);
+  const [shellUCategory, setShellUCategory] = useState<UCategory | null>(null);
+  const [tubeUCategory, setTubeUCategory] = useState<UCategory | null>(null);
+  const [uSuggestion, setUSuggestion] = useState<USuggestion | null>(null);
+
+  // Auto-fills "Initial assumed U" from typical literature ranges whenever
+  // both fluids are selected (or reselected), the same one-shot-autofill
+  // pattern as the fluid property fields - the user can still freely edit
+  // the field afterwards.
+  useEffect(() => {
+    if (!shellUCategory || !tubeUCategory || tubeUCategory === "steam") {
+      setUSuggestion(null);
+      return;
+    }
+    const suggestion = estimateInitialU(shellUCategory, tubeUCategory);
+    setUSuggestion(suggestion);
+    setValue("initialUGuessWM2C", suggestion.midWM2C, { shouldValidate: true });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [shellUCategory, tubeUCategory]);
 
   const { result, calcError } = useMemo(() => {
     try {
@@ -78,6 +101,20 @@ export function CalculatorForm() {
     reset(REFERENCE_EXAMPLE_INPUTS);
     setSubmittedInputs(REFERENCE_EXAMPLE_INPUTS);
     setCalculationCount((c) => c + 1);
+    // The reference example sets initialUGuessWM2C directly rather than via
+    // a fluid preset selection, so clear any stale preset-driven suggestion.
+    setShellUCategory(null);
+    setTubeUCategory(null);
+  };
+
+  const onLoadKeroseneWaterVaporExample = () => {
+    reset(KEROSENE_WATER_VAPOR_EXAMPLE_INPUTS);
+    setSubmittedInputs(KEROSENE_WATER_VAPOR_EXAMPLE_INPUTS);
+    setCalculationCount((c) => c + 1);
+    // Reflect the example's actual fluids (gas shell / light-oil tube) so
+    // the U-suggestion caption matches instead of showing stale/no info.
+    setShellUCategory("gas");
+    setTubeUCategory("light-oil");
   };
 
   // Cmd/Ctrl+Enter submits from anywhere in the form.
@@ -123,9 +160,12 @@ export function CalculatorForm() {
             onSubmit={handleSubmit(onSubmit)}
             className="flex flex-col gap-6 print:hidden"
           >
-            <div className="flex items-center justify-between gap-2">
+            <div className="flex flex-wrap items-center justify-between gap-2">
               <h2 className="text-sm font-medium text-muted-foreground">Design inputs</h2>
-              <LoadReferenceExampleButton onClick={onLoadReferenceExample} />
+              <div className="flex flex-wrap items-center gap-2">
+                <LoadReferenceExampleButton onClick={onLoadReferenceExample} />
+                <LoadKeroseneWaterVaporExampleButton onClick={onLoadKeroseneWaterVaporExample} />
+              </div>
             </div>
 
             <Card>
@@ -133,7 +173,14 @@ export function CalculatorForm() {
                 <CardTitle className="text-sm">Shell-side fluid</CardTitle>
               </CardHeader>
               <CardContent>
-                <ShellSideFluidFields register={register} errors={errors} setValue={setValue} />
+                <ShellSideFluidFields
+                  register={register}
+                  errors={errors}
+                  setValue={setValue}
+                  getValues={getValues}
+                  watch={watch}
+                  onCategoryChange={setShellUCategory}
+                />
               </CardContent>
             </Card>
 
@@ -142,7 +189,13 @@ export function CalculatorForm() {
                 <CardTitle className="text-sm">Tube-side fluid</CardTitle>
               </CardHeader>
               <CardContent>
-                <TubeSideFluidFields register={register} errors={errors} setValue={setValue} />
+                <TubeSideFluidFields
+                  register={register}
+                  errors={errors}
+                  setValue={setValue}
+                  getValues={getValues}
+                  onCategoryChange={setTubeUCategory}
+                />
               </CardContent>
             </Card>
 
@@ -169,7 +222,7 @@ export function CalculatorForm() {
                 <CardTitle className="text-sm">Fouling &amp; tube material</CardTitle>
               </CardHeader>
               <CardContent>
-                <FoulingAndMaterialFields register={register} errors={errors} />
+                <FoulingAndMaterialFields register={register} errors={errors} setValue={setValue} />
               </CardContent>
             </Card>
 
@@ -178,7 +231,7 @@ export function CalculatorForm() {
                 <CardTitle className="text-sm">Iteration settings</CardTitle>
               </CardHeader>
               <CardContent>
-                <IterationSettingsFields register={register} errors={errors} />
+                <IterationSettingsFields register={register} errors={errors} uSuggestion={uSuggestion} />
               </CardContent>
             </Card>
 
@@ -214,6 +267,7 @@ export function CalculatorForm() {
             <ResultsPanel
               key={calculationCount}
               result={result}
+              inputs={submittedInputs}
               hiSelectionMode={hiSelectionMode}
               onHiSelectionModeChange={setHiSelectionMode}
             />
