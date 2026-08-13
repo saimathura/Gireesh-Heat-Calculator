@@ -16,6 +16,7 @@ import {
 import { ResultCard } from "@/components/results/ResultCard";
 import { runBaffleSpacingSweep } from "@/lib/calculations/baffleSpacingSweep";
 import { runMaterialSweep } from "@/lib/calculations/materialSweep";
+import { usePrintChartSize } from "@/lib/hooks/usePrintChartSize";
 import { PRESSURE_DROP_WARNING_THRESHOLD_BAR } from "@/lib/constants/physicalConstants";
 import { fmt } from "@/lib/format";
 import type { HeatExchangerInputs, HiSelectionMode } from "@/lib/types/inputs";
@@ -34,6 +35,8 @@ export function PressureDropAnalysisCard({ inputs, hiSelectionMode }: Props) {
     () => runMaterialSweep(inputs, hiSelectionMode),
     [inputs, hiSelectionMode],
   );
+  const baffleChartSize = usePrintChartSize();
+  const materialChartSize = usePrintChartSize();
 
   return (
     <ResultCard title="Pressure-drop analysis" contentClassName="flex flex-col gap-4">
@@ -45,12 +48,12 @@ export function PressureDropAnalysisCard({ inputs, hiSelectionMode }: Props) {
         for this design&apos;s own flag.
       </p>
 
-      <div className="flex flex-col gap-1.5">
+      <div className="flex flex-col gap-1.5 break-inside-avoid">
         <span className="text-xs font-medium text-muted-foreground">
           Shell-side pressure drop vs. number of baffles
         </span>
-        <div className="h-56 w-full">
-          <ResponsiveContainer width="100%" height="100%">
+        <div ref={baffleChartSize.ref} className="h-56 w-full">
+          <ResponsiveContainer width={baffleChartSize.width} height={baffleChartSize.height}>
             <LineChart
               data={baffleSweep}
               margin={{ top: 8, right: 12, left: 0, bottom: 0 }}
@@ -85,6 +88,7 @@ export function PressureDropAnalysisCard({ inputs, hiSelectionMode }: Props) {
                 name="Shell-side ΔP"
                 stroke="var(--color-chart-1)"
                 strokeWidth={2}
+                isAnimationActive={false}
                 dot={{ r: 3 }}
               />
               <Line
@@ -93,6 +97,7 @@ export function PressureDropAnalysisCard({ inputs, hiSelectionMode }: Props) {
                 name="Tube-side ΔP"
                 stroke="var(--color-chart-2)"
                 strokeWidth={2}
+                isAnimationActive={false}
                 dot={{ r: 3 }}
               />
             </LineChart>
@@ -105,12 +110,12 @@ export function PressureDropAnalysisCard({ inputs, hiSelectionMode }: Props) {
         </p>
       </div>
 
-      <div className="flex flex-col gap-1.5">
+      <div className="flex flex-col gap-1.5 break-inside-avoid">
         <span className="text-xs font-medium text-muted-foreground">
           Pressure drop by tube material
         </span>
-        <div className="h-56 w-full">
-          <ResponsiveContainer width="100%" height="100%">
+        <div ref={materialChartSize.ref} className="h-56 w-full">
+          <ResponsiveContainer width={materialChartSize.width} height={materialChartSize.height}>
             <BarChart
               data={materialSweep}
               margin={{ top: 8, right: 12, left: 0, bottom: 0 }}
@@ -141,12 +146,14 @@ export function PressureDropAnalysisCard({ inputs, hiSelectionMode }: Props) {
                 name="Shell-side ΔP"
                 fill="var(--color-chart-1)"
                 radius={[4, 4, 0, 0]}
+                isAnimationActive={false}
               />
               <Bar
                 dataKey="tubeSideDeltaPBar"
                 name="Tube-side ΔP"
                 fill="var(--color-chart-2)"
                 radius={[4, 4, 0, 0]}
+                isAnimationActive={false}
               />
             </BarChart>
           </ResponsiveContainer>

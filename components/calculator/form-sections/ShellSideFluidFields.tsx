@@ -56,7 +56,7 @@ export function ShellSideFluidFields({ register, errors, setValue, getValues, wa
             id="shellSteamPressureBarA"
             type="number"
             step="any"
-            className="h-9 rounded-md border border-input bg-transparent px-2.5 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
+            className="h-9 rounded-md border border-input bg-background px-2.5 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 dark:bg-input/30"
             {...register("shellSteamPressureBarA", {
               valueAsNumber: true,
               onChange: (e) => onPressureChange(Number(e.target.value)),

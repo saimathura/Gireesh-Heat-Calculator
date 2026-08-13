@@ -32,6 +32,12 @@ export function ResultsPanel({ result, inputs, hiSelectionMode, onHiSelectionMod
     transition: { delay: reduceMotion ? 0 : index * STAGGER_STEP_S, duration: 0.35 },
   });
 
+  // Chart print sizing is handled per-chart via usePrintChartSize (see
+  // lib/hooks/usePrintChartSize.ts), which listens for beforeprint itself
+  // - that covers Cmd/Ctrl+P and the browser's print menu too, not just
+  // this button, so this handler just needs to trigger the print dialog.
+  const handlePrint = () => window.print();
+
   return (
     <section className="flex flex-col gap-6">
       <div className="flex items-center justify-between gap-2 print:hidden">
@@ -41,7 +47,7 @@ export function ResultsPanel({ result, inputs, hiSelectionMode, onHiSelectionMod
           whileHover={{ scale: reduceMotion ? 1 : 1.03 }}
           whileTap={{ scale: reduceMotion ? 1 : 0.96 }}
         >
-          <Button variant="outline" size="sm" onClick={() => window.print()}>
+          <Button variant="outline" size="sm" onClick={handlePrint}>
             <Printer className="size-3.5" />
             Print / save as PDF
           </Button>

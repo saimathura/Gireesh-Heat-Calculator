@@ -51,11 +51,11 @@
 :root {
   --background: oklch(1 0 0);
   --foreground: oklch(0.145 0 0);
-  --card: oklch(1 0 0);
+  --card: color-mix(in oklch, #0041c2 16%, white);
   --card-foreground: oklch(0.145 0 0);
   --popover: oklch(1 0 0);
   --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.205 0 0);
+  --primary: #0041c2;
   --primary-foreground: oklch(0.985 0 0);
   --secondary: oklch(0.97 0 0);
   --secondary-foreground: oklch(0.205 0 0);
@@ -66,8 +66,8 @@
   --destructive: oklch(0.577 0.245 27.325);
   --border: oklch(0.922 0 0);
   --input: oklch(0.922 0 0);
-  --ring: oklch(0.708 0 0);
-  --chart-1: #2563eb;
+  --ring: #0041c2;
+  --chart-1: #0041c2;
   --chart-2: #d97706;
   --chart-3: oklch(0.439 0 0);
   --chart-4: oklch(0.371 0 0);
@@ -86,12 +86,19 @@
 .dark {
   --background: oklch(0.145 0 0);
   --foreground: oklch(0.985 0 0);
-  --card: oklch(0.205 0 0);
+  /* Mixed against #171717 (the hex equivalent of oklch(0.205 0 0)), not
+     that oklch() literal - Chromium doesn't treat an explicit "0" hue on
+     a zero-chroma oklch() color as powerless during color-mix the way it
+     does for hex/keyword colors, so mixing against the oklch() form drags
+     the result toward hue ~336 (magenta/purple) instead of preserving
+     #0041c2's actual hue (~262, blue). Verified directly against
+     getComputedStyle in Chromium, not assumed from the spec. */
+  --card: color-mix(in oklch, #0041c2 24%, #171717);
   --card-foreground: oklch(0.985 0 0);
   --popover: oklch(0.205 0 0);
   --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.922 0 0);
-  --primary-foreground: oklch(0.205 0 0);
+  --primary: color-mix(in oklch, #0041c2 60%, white);
+  --primary-foreground: oklch(0.145 0 0);
   --secondary: oklch(0.269 0 0);
   --secondary-foreground: oklch(0.985 0 0);
   --muted: oklch(0.269 0 0);
@@ -101,20 +108,20 @@
   --destructive: oklch(0.704 0.191 22.216);
   --border: oklch(1 0 0 / 10%);
   --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.556 0 0);
-  --chart-1: #3b82f6;
+  --ring: color-mix(in oklch, #0041c2 60%, white);
+  --chart-1: color-mix(in oklch, #0041c2 60%, white);
   --chart-2: #d97706;
   --chart-3: oklch(0.439 0 0);
   --chart-4: oklch(0.371 0 0);
   --chart-5: oklch(0.269 0 0);
   --sidebar: oklch(0.205 0 0);
   --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.488 0.243 264.376);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
+  --sidebar-primary: color-mix(in oklch, #0041c2 60%, white);
+  --sidebar-primary-foreground: oklch(0.145 0 0);
   --sidebar-accent: oklch(0.269 0 0);
   --sidebar-accent-foreground: oklch(0.985 0 0);
   --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.556 0 0);
+  --sidebar-ring: color-mix(in oklch, #0041c2 60%, white);
 }
 
 @layer base {
@@ -152,7 +159,7 @@
     --card-foreground: oklch(0.145 0 0);
     --popover: oklch(1 0 0);
     --popover-foreground: oklch(0.145 0 0);
-    --primary: oklch(0.205 0 0);
+    --primary: #0041c2;
     --primary-foreground: oklch(0.985 0 0);
     --secondary: oklch(0.97 0 0);
     --secondary-foreground: oklch(0.205 0 0);
@@ -163,8 +170,74 @@
     --destructive: oklch(0.577 0.245 27.325);
     --border: oklch(0.922 0 0);
     --input: oklch(0.922 0 0);
-    --ring: oklch(0.708 0 0);
-    --chart-1: #2563eb;
+    --ring: #0041c2;
+    --chart-1: #0041c2;
     --chart-2: #d97706;
+  }
+}
+
+/* Chart print sizing is handled at the React level now (see
+   lib/hooks/usePrintChartSize.ts) - each chart measures its own real
+   container the instant beforeprint fires and passes Recharts NUMERIC
+   width/height, which Recharts' own source documents as skipping its
+   ResizeObserver-based measurement entirely, so there's no stale-viewBox
+   race left to paper over with a CSS override here. Charts are still
+   forced to fully stack (print:grid-cols-1) with break-inside: avoid on
+   each chart block so pagination can break between charts instead of
+   through one. */
+
+/* Intro hero background: a dim tubesheet-style grid of ring outlines,
+   plus a bright brand-colored glow that tracks the cursor. --mx/--my/
+   --glow-opacity are set on the hero container itself (see the inline
+   style + pointermove handler in IntroHero.tsx) and inherited down here -
+   deliberately NOT redeclared on .tube-field itself, since a custom
+   property declared directly on an element always wins over one
+   inherited from an ancestor, which would silently shadow every update
+   the JS makes. A single listener up there drives this layer below
+   without per-frame React state/re-renders. */
+.tube-field::before,
+.tube-field::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+}
+
+.tube-field::before {
+  background-image:
+    radial-gradient(
+      circle,
+      transparent 3px,
+      color-mix(in oklch, var(--foreground) 55%, transparent) 3px,
+      color-mix(in oklch, var(--foreground) 55%, transparent) 4px,
+      transparent 4px
+    ),
+    radial-gradient(
+      circle,
+      transparent 3px,
+      color-mix(in oklch, var(--foreground) 55%, transparent) 3px,
+      color-mix(in oklch, var(--foreground) 55%, transparent) 4px,
+      transparent 4px
+    );
+  background-size: 34px 34px, 34px 34px;
+  background-position:
+    0 0,
+    17px 17px;
+  opacity: 0.16;
+}
+
+.tube-field::after {
+  background: radial-gradient(
+    circle 420px at var(--mx, 50%) var(--my, 38%),
+    color-mix(in oklch, var(--primary) 55%, transparent) 0%,
+    color-mix(in oklch, var(--primary) 22%, transparent) 35%,
+    transparent 70%
+  );
+  opacity: var(--glow-opacity, 0);
+  transition: opacity 0.5s ease;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tube-field::after {
+    transition: none;
   }
 }

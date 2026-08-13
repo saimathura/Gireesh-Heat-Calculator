@@ -12,6 +12,7 @@ import {
   YAxis,
 } from "recharts";
 import { fmt } from "@/lib/format";
+import { usePrintChartSize } from "@/lib/hooks/usePrintChartSize";
 import type { IterationStep } from "@/lib/types/results";
 
 interface Props {
@@ -52,6 +53,7 @@ function ChartTooltip({
 }
 
 export function ConvergenceTrajectoryChart({ iterations, tolerance }: Props) {
+  const chartSize = usePrintChartSize();
   const finalU = iterations[iterations.length - 1]?.uCalculatedWM2C ?? 0;
   const bandLow = finalU * (1 - tolerance);
   const bandHigh = finalU * (1 + tolerance);
@@ -63,8 +65,8 @@ export function ConvergenceTrajectoryChart({ iterations, tolerance }: Props) {
   }));
 
   return (
-    <div className="h-64 w-full">
-      <ResponsiveContainer width="100%" height="100%">
+    <div ref={chartSize.ref} className="h-64 w-full">
+      <ResponsiveContainer width={chartSize.width} height={chartSize.height}>
         <LineChart data={data} margin={{ top: 8, right: 12, left: 0, bottom: 0 }}>
           <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
           <XAxis
@@ -93,6 +95,7 @@ export function ConvergenceTrajectoryChart({ iterations, tolerance }: Props) {
             dataKey="U guess"
             stroke="var(--color-chart-1)"
             strokeWidth={2}
+            isAnimationActive={false}
             dot={{ r: 4 }}
             activeDot={{ r: 5 }}
           />
@@ -101,6 +104,7 @@ export function ConvergenceTrajectoryChart({ iterations, tolerance }: Props) {
             dataKey="U calculated"
             stroke="var(--color-chart-2)"
             strokeWidth={2}
+            isAnimationActive={false}
             dot={{ r: 4 }}
             activeDot={{ r: 5 }}
           />

@@ -1,9 +1,10 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { motion, useReducedMotion } from "motion/react";
 import { ArrowRight, Gauge, LineChart, Printer } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { TubeFieldBackground } from "@/components/intro/TubeFieldBackground";
 
 interface Props {
   onEnter: () => void;
@@ -19,6 +20,7 @@ const title = "Shell & Tube Heat Exchanger Calculator";
 
 export function IntroHero({ onEnter }: Props) {
   const reduceMotion = useReducedMotion();
+  const heroRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
@@ -28,6 +30,40 @@ export function IntroHero({ onEnter }: Props) {
     return () => document.removeEventListener("keydown", onKeyDown);
   }, [onEnter]);
 
+  // Drives the tube-field background's cursor spotlight/glow (see
+  // TubeFieldBackground.tsx + the .tube-field rules in globals.css) by
+  // setting CSS custom properties directly on this container, rather than
+  // React state - keeps pointermove smooth since nothing re-renders.
+  // Listener lives on the whole hero (not just the background layer,
+  // which is pointer-events: none) so it still tracks while hovering the
+  // heading/button/text, via normal event bubbling.
+  useEffect(() => {
+    const el = heroRef.current;
+    if (!el || reduceMotion) return;
+
+    let raf = 0;
+    const onMove = (e: PointerEvent) => {
+      const rect = el.getBoundingClientRect();
+      const x = e.clientX - rect.left;
+      const y = e.clientY - rect.top;
+      cancelAnimationFrame(raf);
+      raf = requestAnimationFrame(() => {
+        el.style.setProperty("--mx", `${x}px`);
+        el.style.setProperty("--my", `${y}px`);
+        el.style.setProperty("--glow-opacity", "1");
+      });
+    };
+    const onLeave = () => el.style.setProperty("--glow-opacity", "0");
+
+    el.addEventListener("pointermove", onMove);
+    el.addEventListener("pointerleave", onLeave);
+    return () => {
+      el.removeEventListener("pointermove", onMove);
+      el.removeEventListener("pointerleave", onLeave);
+      cancelAnimationFrame(raf);
+    };
+  }, [reduceMotion]);
+
   const wordVariants = {
     hidden: { opacity: 0, y: reduceMotion ? 0 : 12 },
     visible: { opacity: 1, y: 0 },
@@ -35,12 +71,15 @@ export function IntroHero({ onEnter }: Props) {
 
   return (
     <motion.div
+      ref={heroRef}
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0, scale: reduceMotion ? 1 : 0.98 }}
       transition={{ duration: reduceMotion ? 0.1 : 0.35 }}
-      className="flex min-h-svh w-full flex-col items-center justify-center gap-8 px-6 py-16 text-center"
+      className="relative flex min-h-svh w-full flex-col items-center justify-center gap-8 overflow-hidden px-6 py-16 text-center"
     >
+      <TubeFieldBackground />
+
       <motion.h1
         initial="hidden"
         animate="visible"

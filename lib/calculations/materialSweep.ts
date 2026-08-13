@@ -13,6 +13,7 @@ export interface MaterialSweepPoint {
   tubeSideDeltaPBar: number;
   shellSideDeltaPBar: number;
   finalUWM2C: number;
+  heatDutyKw: number;
   converged: boolean;
   failed: boolean;
   errorMessage?: string;
@@ -43,6 +44,7 @@ export function runMaterialSweep(
         tubeSideDeltaPBar: result.pressureDrops.tubeSideBar,
         shellSideDeltaPBar: result.pressureDrops.shellSideBar,
         finalUWM2C: result.finalUWM2C,
+        heatDutyKw: result.heatDutyKw,
         converged: result.converged,
         failed: false,
       };
@@ -58,6 +60,7 @@ export function runMaterialSweep(
         tubeSideDeltaPBar: NaN,
         shellSideDeltaPBar: NaN,
         finalUWM2C: NaN,
+        heatDutyKw: NaN,
         converged: false,
         failed: true,
         errorMessage: err instanceof Error ? err.message : "Calculation failed.",

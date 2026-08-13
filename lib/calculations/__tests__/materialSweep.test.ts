@@ -36,4 +36,10 @@ describe("runMaterialSweep", () => {
     const stainless = sweep.find((p) => p.materialKey === "stainless-steel")!;
     expect(stainless.kwWM_C).toBe(REFERENCE_EXAMPLE_INPUTS.kwWM_C);
   });
+
+  it("holds heat duty constant across materials (duty comes from the process energy balance, not Kw)", () => {
+    for (const point of sweep) {
+      expect(point.heatDutyKw).toBeCloseTo(sweep[0].heatDutyKw, 6);
+    }
+  });
 });
