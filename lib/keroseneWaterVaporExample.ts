@@ -16,6 +16,7 @@ import type { HeatExchangerInputs } from "@/lib/types/inputs";
 // heavy oil), whose tube-side Re maxes out around 700 no matter what, and
 // which never comes remotely close.
 export const KEROSENE_WATER_VAPOR_EXAMPLE_INPUTS: HeatExchangerInputs = {
+  coolingSide: "shell",
   shellFlowRateKgHr: 440,
   shellInletTempC: 250,
   shellOutletTempC: 150,

@@ -96,6 +96,9 @@ export function FluidPresetSelect({ side, setValue, getValues, allowSteam, onCat
       if (side !== "shell") return;
       const saturation = interpolateSteamSaturation(STEAM_DEFAULT_PRESSURE_BARA);
       setValue("shellIsSteam", true, { shouldValidate: true });
+      // Steam is a heating arrangement (process fluid in the tubes) - it
+      // can't coexist with tube-side cooling, so force the arrangement back.
+      setValue("coolingSide", "shell", { shouldValidate: true });
       setValue("shellSteamPressureBarA", STEAM_DEFAULT_PRESSURE_BARA, { shouldValidate: true });
       setValue("shellInletTempC", saturation.tempC, { shouldValidate: true });
       setValue("shellOutletTempC", saturation.tempC, { shouldValidate: true });

@@ -8,6 +8,7 @@ const positiveNumber = (label: string) =>
 
 export const heatExchangerInputsSchema = z
   .object({
+    coolingSide: z.enum(["shell", "tube"]).optional(),
     shellFlowRateKgHr: positiveNumber("Shell-side flow rate"),
     shellInletTempC: z.number({ error: "Shell inlet temperature must be a number" }),
     shellOutletTempC: z.number({ error: "Shell outlet temperature must be a number" }),
@@ -71,16 +72,62 @@ export const heatExchangerInputsSchema = z
       .optional(),
   })
   .refine(
-    (data) => data.shellIsSteam || data.shellOutletTempC < data.shellInletTempC,
+    (data) => !(data.shellIsSteam && data.coolingSide === "tube"),
+    {
+      error:
+        "Shell-side steam and tube-side cooling can't be combined — steam mode is a heating arrangement with the process fluid already in the tubes",
+      path: ["coolingSide"],
+    },
+  )
+  // Shell-side direction. Default / steam: shell is the hot side (or
+  // isothermal), so outlet <= inlet. Tube-side cooling: the shell fluid is
+  // the coolant and is heated, so outlet > inlet.
+  .refine(
+    (data) =>
+      data.shellIsSteam ||
+      data.coolingSide === "tube" ||
+      data.shellOutletTempC < data.shellInletTempC,
     {
       error: "Shell-side outlet temperature must be lower than inlet temperature (shell is being cooled)",
       path: ["shellOutletTempC"],
     },
   )
-  .refine((data) => data.tubeOutletTempC > data.tubeInletTempC, {
-    error: "Tube-side outlet temperature must be higher than inlet temperature (tube is being heated)",
-    path: ["tubeOutletTempC"],
-  })
+  .refine(
+    (data) =>
+      data.coolingSide !== "tube" ||
+      data.shellOutletTempC > data.shellInletTempC,
+    {
+      error:
+        "For tube-side cooling the shell-side fluid is the coolant: its outlet temperature must be higher than its inlet temperature (shell is being heated)",
+      path: ["shellOutletTempC"],
+    },
+  )
+  // Tube-side direction. Default / steam: the tube fluid is heated, so
+  // outlet > inlet. Tube-side cooling: the tube fluid is the hot process
+  // stream being cooled, so outlet < inlet.
+  .refine(
+    (data) => data.coolingSide === "tube" || data.tubeOutletTempC > data.tubeInletTempC,
+    {
+      error: "Tube-side outlet temperature must be higher than inlet temperature (tube is being heated)",
+      path: ["tubeOutletTempC"],
+    },
+  )
+  .refine(
+    (data) => data.coolingSide !== "tube" || data.tubeOutletTempC < data.tubeInletTempC,
+    {
+      error:
+        "For tube-side cooling the tube-side fluid is the process stream being cooled: its outlet temperature must be lower than its inlet temperature",
+      path: ["tubeOutletTempC"],
+    },
+  )
+  .refine(
+    (data) => data.coolingSide !== "tube" || data.tubeFlowRateKgHrInput !== undefined,
+    {
+      error:
+        "Tube-side flow rate is required for tube-side cooling (it is the process-fluid flow; the shell-side coolant flow is derived from duty)",
+      path: ["tubeFlowRateKgHrInput"],
+    },
+  )
   .refine(
     (data) => !data.shellIsSteam || data.shellSteamPressureBarA !== undefined,
     {
@@ -101,9 +148,14 @@ export const heatExchangerInputsSchema = z
   })
   .refine(
     (data) => {
-      const dT1 = data.shellInletTempC - data.tubeOutletTempC;
-      const dT2 = data.shellOutletTempC - data.tubeInletTempC;
-      return dT1 > 0 && dT2 > 0;
+      // Orient by which stream is hot: tube-side cooling puts the hot stream
+      // in the tubes, every other mode keeps it on the shell side.
+      const tubeIsHot = data.coolingSide === "tube" && !data.shellIsSteam;
+      const hotIn = tubeIsHot ? data.tubeInletTempC : data.shellInletTempC;
+      const hotOut = tubeIsHot ? data.tubeOutletTempC : data.shellOutletTempC;
+      const coldIn = tubeIsHot ? data.shellInletTempC : data.tubeInletTempC;
+      const coldOut = tubeIsHot ? data.shellOutletTempC : data.tubeOutletTempC;
+      return hotIn - coldOut > 0 && hotOut - coldIn > 0;
     },
     {
       error:

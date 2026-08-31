@@ -26,6 +26,7 @@ interface Props {
 export function ShellSideFluidFields({ register, errors, setValue, getValues, watch, onCategoryChange }: Props) {
   const isSteam = watch("shellIsSteam");
   const steamPressure = watch("shellSteamPressureBarA");
+  const isTubeCooling = watch("coolingSide") === "tube" && !isSteam;
 
   const onPressureChange = (pressure: number) => {
     if (!Number.isFinite(pressure) || pressure <= 0) return;
@@ -108,23 +109,25 @@ export function ShellSideFluidFields({ register, errors, setValue, getValues, wa
         allowSteam
         onCategoryChange={onCategoryChange}
       />
-      <NumberField
-        name="shellFlowRateKgHr"
-        label="Flow rate"
-        unit="kg/hr"
-        register={register}
-        errors={errors}
-      />
+      {isTubeCooling ? null : (
+        <NumberField
+          name="shellFlowRateKgHr"
+          label="Flow rate"
+          unit="kg/hr"
+          register={register}
+          errors={errors}
+        />
+      )}
       <NumberField
         name="shellInletTempC"
-        label="Inlet temperature"
+        label={isTubeCooling ? "Coolant inlet temperature" : "Inlet temperature"}
         unit="°C"
         register={register}
         errors={errors}
       />
       <NumberField
         name="shellOutletTempC"
-        label="Outlet temperature"
+        label={isTubeCooling ? "Coolant outlet temperature" : "Outlet temperature"}
         unit="°C"
         register={register}
         errors={errors}
@@ -157,6 +160,13 @@ export function ShellSideFluidFields({ register, errors, setValue, getValues, wa
         register={register}
         errors={errors}
       />
+      {isTubeCooling ? (
+        <p className="col-span-full text-xs text-muted-foreground">
+          Tube-side cooling: the shell side is the coolant (outlet must be
+          hotter than inlet). Its flow rate is derived from the energy balance,
+          not entered — see the Duty &amp; LMTD result card.
+        </p>
+      ) : null}
     </div>
   );
 }

@@ -1,3 +1,5 @@
+import type { CoolingSide } from "@/lib/types/inputs";
+
 export interface IterationStep {
   iteration: number;
   uGuessWM2C: number;
@@ -18,8 +20,15 @@ export interface IterationStep {
 export interface CalculationResult {
   // Duty & LMTD
   heatDutyKw: number;
+  // Which side carries the hot process fluid being cooled: "shell" (default,
+  // shell flow entered / tube coolant flow derived) or "tube" (tube process
+  // flow entered / shell coolant flow derived).
+  coolingSide: CoolingSide;
   tubeFlowRateKgS: number;
   tubeFlowRateKgHr: number;
+  // Shell-side mass flow rate. In tube-side-cooling mode this is the derived
+  // coolant flow; otherwise it echoes the entered shell-side flow.
+  shellFlowRateKgHr: number;
   isSteam: boolean;
   steamTempC: number | null;
   steamHfgKjKg: number | null;

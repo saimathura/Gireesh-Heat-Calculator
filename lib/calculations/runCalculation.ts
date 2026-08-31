@@ -1,4 +1,7 @@
-import { calculateHeatDuty, calculateTubeFlowRate } from "@/lib/calculations/energyBalance";
+import {
+  calculateHeatDuty,
+  resolveStreamFlowsKgS,
+} from "@/lib/calculations/energyBalance";
 import { runConvergenceLoop } from "@/lib/calculations/iterate";
 import {
   calculateCorrectedLmtd,
@@ -39,6 +42,8 @@ export function runCalculation(
   heatExchangerInputsSchema.parse(inputs);
 
   const shellIsSteam = inputs.shellIsSteam ?? false;
+  const coolingSide = inputs.coolingSide ?? "shell";
+  const tubeSideCooling = coolingSide === "tube" && !shellIsSteam;
   const tubeDtC = inputs.tubeOutletTempC - inputs.tubeInletTempC;
 
   let heatDutyKw: number;
@@ -64,6 +69,21 @@ export function runCalculation(
       tubeDtC,
     );
     steamConsumptionKgHr = calculateSteamConsumptionKgS(heatDutyKw, steamHfgKjKg) * 3600;
+  } else if (tubeSideCooling) {
+    if (inputs.tubeFlowRateKgHrInput === undefined) {
+      // Guarded by the zod schema's refine() checks - unreachable in
+      // practice, but keeps this function's types honest.
+      throw new Error(
+        "Tube-side flow rate is required for tube-side cooling (it is the process-fluid flow).",
+      );
+    }
+    // Hot process fluid is in the tubes and is being cooled, so duty comes
+    // from the tube side's own energy balance with inlet hotter than outlet.
+    heatDutyKw = calculateHeatDuty(
+      inputs.tubeFlowRateKgHrInput,
+      inputs.tubeCpKjKgK,
+      inputs.tubeInletTempC - inputs.tubeOutletTempC,
+    );
   } else {
     const shellDtC = inputs.shellInletTempC - inputs.shellOutletTempC;
     heatDutyKw = calculateHeatDuty(
@@ -73,10 +93,9 @@ export function runCalculation(
     );
   }
 
-  const tubeFlowRateKgS = calculateTubeFlowRate(
+  const { tubeFlowRateKgS, shellFlowRateKgS } = resolveStreamFlowsKgS(
+    inputs,
     heatDutyKw,
-    inputs.tubeCpKjKgK,
-    tubeDtC,
   );
 
   const lmtd = calculateLmtd(
@@ -143,7 +162,7 @@ export function runCalculation(
         STEAM_NOZZLE_DESIGN_VELOCITY_MS,
       )
     : calculateNozzleSize(
-        inputs.shellFlowRateKgHr / 3600,
+        shellFlowRateKgS,
         inputs.shellRhoKgM3,
         finalDetail.shellVelocityMs,
       );
@@ -214,6 +233,11 @@ export function runCalculation(
       "One or more Reynolds numbers fall outside the ~7,000-10,000 range that the digitized hi (Method B), ho, and friction-factor correlations were calibrated against — treat those results (including tube count, shell diameter, and U, not just pressure drop) as extrapolated and verify manually.",
     );
   }
+  if (tubeSideCooling) {
+    messages.push(
+      `Tube-side cooling: the hot process fluid is in the tubes (${inputs.tubeInletTempC}°C → ${inputs.tubeOutletTempC}°C) and the shell-side fluid is the coolant (${inputs.shellInletTempC}°C → ${inputs.shellOutletTempC}°C). Heat duty is set by the entered tube-side flow (${inputs.tubeFlowRateKgHrInput?.toFixed(0)} kg/hr); the shell-side coolant flow (${(shellFlowRateKgS * 3600).toFixed(0)} kg/hr) is derived from the energy balance.`,
+    );
+  }
   if (shellIsSteam) {
     messages.push(
       `Shell side modeled as condensing steam at ${(steamTempC as number).toFixed(1)}°C (${steamHfgKjKg?.toFixed(1)} kJ/kg latent heat) — steam-side film coefficient uses a typical published value (${STEAM_CONDENSING_FILM_COEFFICIENT_WM2C} W/m²°C, literature range ${STEAM_CONDENSING_FILM_COEFFICIENT_RANGE.min}-${STEAM_CONDENSING_FILM_COEFFICIENT_RANGE.max}) rather than a Kern correlation computed from this design, and shell-side pressure drop is not modeled for condensing vapor. Steam consumption: ${steamConsumptionKgHr?.toFixed(1)} kg/hr.`,
@@ -226,8 +250,10 @@ export function runCalculation(
 
   return {
     heatDutyKw,
+    coolingSide,
     tubeFlowRateKgS,
     tubeFlowRateKgHr: tubeFlowRateKgS * 3600,
+    shellFlowRateKgHr: shellFlowRateKgS * 3600,
     isSteam: shellIsSteam,
     steamTempC,
     steamHfgKjKg,

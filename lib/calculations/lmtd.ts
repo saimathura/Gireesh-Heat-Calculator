@@ -1,5 +1,13 @@
 /**
  * Log-mean temperature difference (counter-current).
+ *
+ * Works for either cooling arrangement: the hot stream is whichever side
+ * cools down (outlet below inlet). Shell-side cooling (shell hot) and the
+ * isothermal-steam case both fall through to the original shell-hot
+ * terminal-difference definition; tube-side cooling (tube cools down while
+ * the shell coolant heats up) uses the mirrored terminals. A physically
+ * impossible pairing - both streams cooling, or both heating - still trips
+ * the non-positive-approach guard below rather than returning a number.
  */
 export function calculateLmtd(
   shellInC: number,
@@ -7,8 +15,9 @@ export function calculateLmtd(
   tubeInC: number,
   tubeOutC: number,
 ): number {
-  const dT1 = shellInC - tubeOutC;
-  const dT2 = shellOutC - tubeInC;
+  const tubeIsHot = tubeOutC < tubeInC && shellOutC > shellInC;
+  const dT1 = tubeIsHot ? tubeInC - shellOutC : shellInC - tubeOutC;
+  const dT2 = tubeIsHot ? tubeOutC - shellInC : shellOutC - tubeInC;
   if (dT1 <= 0 || dT2 <= 0) {
     throw new Error(
       "Non-physical temperature approach: shell/tube temperatures cross (dT1 or dT2 <= 0). Check inlet/outlet temperature inputs.",

@@ -4,6 +4,7 @@ import { fmt } from "@/lib/format";
 import type { CalculationResult } from "@/lib/types/results";
 
 export function DutyAndLmtdCard({ result }: { result: CalculationResult }) {
+  const tubeCooling = result.coolingSide === "tube";
   return (
     <ResultCard title="Duty & LMTD">
       <Stat
@@ -15,10 +16,21 @@ export function DutyAndLmtdCard({ result }: { result: CalculationResult }) {
         className="col-span-2 sm:col-span-1"
       />
       <Stat
-        label={result.isSteam ? "Tube-side flow (input)" : "Tube-side flow (derived)"}
+        label={
+          result.isSteam || tubeCooling
+            ? "Tube-side flow (input)"
+            : "Tube-side flow (derived)"
+        }
         value={fmt(result.tubeFlowRateKgHr, 0)}
         unit="kg/hr"
       />
+      {tubeCooling ? (
+        <Stat
+          label="Shell-side coolant flow (derived)"
+          value={fmt(result.shellFlowRateKgHr, 0)}
+          unit="kg/hr"
+        />
+      ) : null}
       <Stat label="LMTD" value={fmt(result.lmtd)} unit="°C" />
       <Stat label="R / S" value={`${fmt(result.r, 2)} / ${fmt(result.s, 2)}`} />
       <Stat label="Correction factor F" value={fmt(result.f, 3)} />

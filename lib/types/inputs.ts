@@ -4,7 +4,23 @@ export const PASS_COUNTS: PassCount[] = [1, 2, 4, 6, 8];
 
 export type HiSelectionMode = "conservative" | "methodA" | "methodB";
 
+export type CoolingSide = "shell" | "tube";
+
 export interface HeatExchangerInputs {
+  // Cooling arrangement. Defaults to "shell" when omitted.
+  //   "shell" - the hot process fluid being cooled is on the SHELL side and
+  //     the coolant is in the tubes. shellFlowRateKgHr is the entered
+  //     process flow; the tube-side coolant flow is back-calculated from the
+  //     energy balance. (Original, unchanged behavior.)
+  //   "tube" - the mirror image: the hot process fluid being cooled flows
+  //     through the TUBES and the coolant is on the shell side. In this mode
+  //     tubeFlowRateKgHrInput is required (it is the process-fluid flow) and
+  //     the shell-side coolant flow is the one back-calculated from duty.
+  //     Tube inlet is hotter than tube outlet; shell outlet is hotter than
+  //     shell inlet. Mutually exclusive with shellIsSteam (steam is a
+  //     heating arrangement, not a cooling one).
+  coolingSide?: CoolingSide;
+
   // Shell-side fluid
   shellFlowRateKgHr: number;
   shellInletTempC: number;
@@ -25,6 +41,9 @@ export interface HeatExchangerInputs {
   // single-phase shell correlation. Only the shell side supports steam.
   shellIsSteam?: boolean;
   shellSteamPressureBarA?: number;
+  // Entered tube-side mass flow rate. Required (and used as the process-fluid
+  // flow) when shellIsSteam is true OR when coolingSide is "tube"; ignored in
+  // the default shell-side-cooling mode, where the tube flow is derived.
   tubeFlowRateKgHrInput?: number;
 
   // Tube-side fluid (flow rate is derived, not entered)

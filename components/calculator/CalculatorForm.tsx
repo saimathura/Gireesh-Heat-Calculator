@@ -10,6 +10,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { LoadReferenceExampleButton } from "@/components/calculator/LoadReferenceExampleButton";
 import { LoadKeroseneWaterVaporExampleButton } from "@/components/calculator/LoadKeroseneWaterVaporExampleButton";
+import { CoolingArrangementField } from "@/components/calculator/form-sections/CoolingArrangementField";
 import { ShellSideFluidFields } from "@/components/calculator/form-sections/ShellSideFluidFields";
 import { TubeSideFluidFields } from "@/components/calculator/form-sections/TubeSideFluidFields";
 import { TubeGeometryFields } from "@/components/calculator/form-sections/TubeGeometryFields";
@@ -170,6 +171,20 @@ export function CalculatorForm() {
 
             <Card>
               <CardHeader>
+                <CardTitle className="text-sm">Cooling arrangement</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <CoolingArrangementField
+                  control={control}
+                  watch={watch}
+                  setValue={setValue}
+                  getValues={getValues}
+                />
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
                 <CardTitle className="text-sm">Shell-side fluid</CardTitle>
               </CardHeader>
               <CardContent>
@@ -194,6 +209,7 @@ export function CalculatorForm() {
                   errors={errors}
                   setValue={setValue}
                   getValues={getValues}
+                  watch={watch}
                   onCategoryChange={setTubeUCategory}
                 />
               </CardContent>

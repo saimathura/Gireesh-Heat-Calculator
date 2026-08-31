@@ -1,6 +1,7 @@
 import { calculateHiMethodA } from "@/lib/calculations/hiMethodA";
 import { calculateHiMethodB } from "@/lib/calculations/hiMethodB";
 import { calculateOverallU } from "@/lib/calculations/overallU";
+import { resolveStreamFlowsKgS } from "@/lib/calculations/energyBalance";
 import {
   calculateHo,
   calculateShellPrandtl,
@@ -234,8 +235,14 @@ export function runConvergenceLoop(
     baffleSpacingFraction: inputs.baffleSpacingFraction,
   };
 
-  const tubeFlowRateKgS =
-    heatDutyW / 1000 / (inputs.tubeCpKjKgK * (inputs.tubeOutletTempC - inputs.tubeInletTempC));
+  // Honors the cooling arrangement: in the default shell-side-cooling mode
+  // this reproduces the legacy "shell flow entered, tube flow derived"
+  // split exactly; in tube-side-cooling mode the tube flow is the entered
+  // process flow and the shell-side coolant flow is the derived one.
+  const { tubeFlowRateKgS, shellFlowRateKgS } = resolveStreamFlowsKgS(
+    inputs,
+    heatDutyW / 1000,
+  );
 
   const thermal: ThermalInputs = {
     tubeFlowRateKgS,
@@ -244,7 +251,7 @@ export function runConvergenceLoop(
     tubeCpKjKgK: inputs.tubeCpKjKgK,
     tubeKfWmC: inputs.tubeKfWmC,
     tubeMuMNsM2: inputs.tubeMuMNsM2,
-    shellFlowRateKgS: inputs.shellFlowRateKgHr / 3600,
+    shellFlowRateKgS,
     shellRhoKgM3: inputs.shellRhoKgM3,
     shellCpKjKgK: inputs.shellCpKjKgK,
     shellKfWmC: inputs.shellKfWmC,

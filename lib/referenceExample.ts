@@ -5,6 +5,7 @@ import type { HeatExchangerInputs } from "@/lib/types/inputs";
 // AND the exact-match fixture tests in lib/calculations/__tests__ — keep
 // these in sync by construction (both import this constant).
 export const REFERENCE_EXAMPLE_INPUTS: HeatExchangerInputs = {
+  coolingSide: "shell",
   shellFlowRateKgHr: 25000,
   shellInletTempC: 42,
   shellOutletTempC: 38,
