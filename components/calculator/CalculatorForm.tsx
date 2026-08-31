@@ -10,6 +10,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { LoadReferenceExampleButton } from "@/components/calculator/LoadReferenceExampleButton";
 import { LoadKeroseneWaterVaporExampleButton } from "@/components/calculator/LoadKeroseneWaterVaporExampleButton";
+import { LoadTubeSideCoolingExampleButton } from "@/components/calculator/LoadTubeSideCoolingExampleButton";
 import { CoolingArrangementField } from "@/components/calculator/form-sections/CoolingArrangementField";
 import { ShellSideFluidFields } from "@/components/calculator/form-sections/ShellSideFluidFields";
 import { TubeSideFluidFields } from "@/components/calculator/form-sections/TubeSideFluidFields";
@@ -24,6 +25,7 @@ import { runCalculation } from "@/lib/calculations/runCalculation";
 import { heatExchangerInputsSchema } from "@/lib/validation/inputSchema";
 import { REFERENCE_EXAMPLE_INPUTS } from "@/lib/referenceExample";
 import { KEROSENE_WATER_VAPOR_EXAMPLE_INPUTS } from "@/lib/keroseneWaterVaporExample";
+import { TUBE_SIDE_COOLING_EXAMPLE_INPUTS } from "@/lib/tubeSideCoolingExample";
 import { estimateInitialU, type USuggestion, type UCategory } from "@/lib/constants/uValueTable";
 import type { HeatExchangerInputs, HiSelectionMode } from "@/lib/types/inputs";
 
@@ -118,6 +120,15 @@ export function CalculatorForm() {
     setTubeUCategory("light-oil");
   };
 
+  const onLoadTubeSideCoolingExample = () => {
+    reset(TUBE_SIDE_COOLING_EXAMPLE_INPUTS);
+    setSubmittedInputs(TUBE_SIDE_COOLING_EXAMPLE_INPUTS);
+    setCalculationCount((c) => c + 1);
+    // Light oil in the tubes (the hot side here), cooling water on the shell.
+    setShellUCategory("water");
+    setTubeUCategory("light-oil");
+  };
+
   // Cmd/Ctrl+Enter submits from anywhere in the form.
   useEffect(() => {
     if (!entered) return;
@@ -166,6 +177,7 @@ export function CalculatorForm() {
               <div className="flex flex-wrap items-center gap-2">
                 <LoadReferenceExampleButton onClick={onLoadReferenceExample} />
                 <LoadKeroseneWaterVaporExampleButton onClick={onLoadKeroseneWaterVaporExample} />
+                <LoadTubeSideCoolingExampleButton onClick={onLoadTubeSideCoolingExample} />
               </div>
             </div>
 
